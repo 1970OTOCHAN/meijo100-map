@@ -4,8 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>日本100名城マップ</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://unpkg.com/pmtiles@3.2.1/dist/pmtiles.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Yuji+Syuku&display=swap" rel="stylesheet">
 <style>
@@ -32,7 +33,8 @@
   .pop button { margin-top:8px; width:100%; padding:9px; font-size:15px; border:none; border-radius:6px;
                 cursor:pointer; background:#3b2a1a; color:#fff; font-weight:700; }
   .pop button.on { background:#c0392b; }
-  .leaflet-popup-content { margin:10px; }
+  .maplibregl-popup-content { padding:10px; }
+  .castle { cursor:pointer; }
   #ver { font-size:12px; color:#d9c9b0; margin-left:auto; }
   #opening { position:fixed; inset:0; z-index:5000; background:#1f2529; display:flex; flex-direction:column;
              align-items:center; justify-content:center; cursor:pointer; transition:opacity .6s; text-align:center; padding:0 16px; }
@@ -59,7 +61,7 @@
   <span id="count">訪問 0 / 100</span>
   <select id="jump"><option value="">城を選んで移動…</option></select>
   <label><input type="checkbox" id="onlyNot"> 未訪問だけ表示</label>
-  <span id="ver">Ver 1.1</span>
+  <span id="ver">Ver 2.0</span>
 </div>
 <div id="map"></div>
 
@@ -175,30 +177,28 @@ try { visited = new Set(JSON.parse(localStorage.getItem(KEY) || "[]")); } catch(
 function saveVisited(){ try { localStorage.setItem(KEY, JSON.stringify([...visited])); } catch(e) {} }
 function updateCount(){ document.getElementById("count").textContent = `訪問 ${visited.size} / 100`; }
 
-// ---- 地図（国土地理院タイル） ----
-const gsiAttr = '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>';
-const layers = {
-  "標準地図": L.tileLayer("https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png", {attribution:gsiAttr, maxZoom:18}),
-  "淡色地図": L.tileLayer("https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png", {attribution:gsiAttr, maxZoom:18}),
-  "写真":     L.tileLayer("https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg", {attribution:gsiAttr, maxZoom:18})
-};
-// 日本の周りだけ動かせるようにする
-const JAPAN = L.latLngBounds([[23.5, 122.5], [46.0, 149.0]]);
-const map = L.map("map", { layers:[layers["標準地図"]], maxBounds: JAPAN.pad(0.05), maxBoundsViscosity: 1.0 });
-function fitJapan(){
-  map.setMinZoom(0);
-  const z = Math.max(4, map.getBoundsZoom(JAPAN, false));
-  map.setMinZoom(z);
-  return z;
-}
-map.fitBounds(JAPAN); fitJapan();
-map.on("resize", fitJapan);
-L.control.layers(layers, null, {collapsed:false}).addTo(map);
+// ---- 地図（国土地理院 最適化ベクトルタイル） ----
+const pmProtocol = new pmtiles.Protocol();
+maplibregl.addProtocol("pmtiles", pmProtocol.tile);
+const JAPAN = [[120.0, 20.0], [155.0, 46.8]];
+const map = new maplibregl.Map({
+  container: "map",
+  style: "https://gsi-cyberjapan.github.io/optimal_bvmap/style/std.json",
+  bounds: JAPAN, maxBounds: JAPAN, maxZoom: 17.5,
+  dragRotate: false, pitchWithRotate: false, attributionControl: false
+});
+map.touchZoomRotate.disableRotation();
+map.addControl(new maplibregl.NavigationControl({ showCompass:false }), "top-left");
+map.addControl(new maplibregl.AttributionControl({ compact:false,
+  customAttribution: '出典：<a href="https://github.com/gsi-cyberjapan/optimal_bvmap" target="_blank">国土地理院最適化ベクトルタイル</a>' }));
+// 境界線と等高線を消して、シンプルにする
+map.on("load", () => {
+  map.getStyle().layers.forEach(l => {
+    if (["AdmBdry","Cntr"].includes(l["source-layer"])) map.setLayoutProperty(l.id, "visibility", "none");
+  });
+});
 
-function makeIcon(no){
-  return L.divIcon({ className:"", iconSize:[30,30], iconAnchor:[15,15], popupAnchor:[0,-14],
-    html:`<div class="castle${visited.has(no) ? " visited" : ""}" style="position:relative">🏯</div>` });
-}
+function paintIcon(el, no){ el.classList.add("castle"); el.classList.toggle("visited", visited.has(no)); }
 
 // ---- 写真（Wikipedia / ウィキメディア・コモンズ） ----
 const photoCache = {};
@@ -227,7 +227,9 @@ async function getPhoto(title){
 const markers = {};
 const jump = document.getElementById("jump");
 CASTLES.forEach(([no, name, pref, lat, lng, wiki]) => {
-  const m = L.marker([lat, lng], { icon: makeIcon(no), title: `${no} ${name}` });
+  const el = document.createElement("div");
+  el.textContent = "🏯"; el.title = `${no} ${name}`;
+  paintIcon(el, no);
 
   const box = document.createElement("div");
   box.className = "pop";
@@ -241,20 +243,21 @@ CASTLES.forEach(([no, name, pref, lat, lng, wiki]) => {
   }
   btn.onclick = () => {
     visited.has(no) ? visited.delete(no) : visited.add(no);
-    saveVisited(); updateCount(); paintBtn(); m.setIcon(makeIcon(no)); applyFilter();
+    saveVisited(); updateCount(); paintBtn(); paintIcon(el, no); applyFilter();
   };
   paintBtn();
-  m.bindPopup(box, { maxWidth: 280 });
+
+  const popup = new maplibregl.Popup({ maxWidth:"290px", offset:16 }).setDOMContent(box);
+  const m = new maplibregl.Marker({ element: el }).setLngLat([lng, lat]).setPopup(popup);
 
   let loaded = false;
-  m.on("popupopen", async () => {
+  popup.on("open", async () => {
     if (loaded) return; loaded = true;
     const photo = box.querySelector(".photo"), credit = box.querySelector(".credit");
     try {
       const p = await getPhoto(wiki);
       if (p.src) {
         const img = new Image();
-        img.onload = () => m.getPopup().update();
         img.src = p.src; img.alt = name;
         photo.innerHTML = ""; photo.appendChild(img);
         const who = [p.artist, p.license].filter(Boolean).join(" / ");
@@ -267,11 +270,10 @@ CASTLES.forEach(([no, name, pref, lat, lng, wiki]) => {
     } catch(e) {
       photo.textContent = "写真を読み込めませんでした（インターネット接続を確認してください）";
     }
-    m.getPopup().update();
   });
 
   m.addTo(map);
-  markers[no] = m;
+  markers[no] = { m, popup, shown: true };
   const opt = document.createElement("option");
   opt.value = no; opt.textContent = `${no}. ${name}（${pref}）`;
   jump.appendChild(opt);
@@ -279,17 +281,18 @@ CASTLES.forEach(([no, name, pref, lat, lng, wiki]) => {
 
 jump.onchange = () => {
   const no = Number(jump.value); if (!no) return;
-  const m = markers[no];
-  if (!map.hasLayer(m)) m.addTo(map);
-  map.setView(m.getLatLng(), 14); m.openPopup();
+  const k = markers[no];
+  if (!k.shown) { k.m.addTo(map); k.shown = true; }
+  map.flyTo({ center: k.m.getLngLat(), zoom: 14 });
+  if (!k.popup.isOpen()) k.m.togglePopup();
 };
 
 const onlyNot = document.getElementById("onlyNot");
 function applyFilter(){
   CASTLES.forEach(([no]) => {
-    const m = markers[no], hide = onlyNot.checked && visited.has(no);
-    if (hide && map.hasLayer(m) && !m.isPopupOpen()) map.removeLayer(m);
-    if (!hide && !map.hasLayer(m)) m.addTo(map);
+    const k = markers[no], hide = onlyNot.checked && visited.has(no);
+    if (hide && k.shown && !k.popup.isOpen()) { k.m.remove(); k.shown = false; }
+    if (!hide && !k.shown) { k.m.addTo(map); k.shown = true; }
   });
 }
 onlyNot.onchange = applyFilter;
