@@ -300,7 +300,7 @@ updateCount();
   const op = document.getElementById("opening");
   let closed = false;
   function close(){ if (closed) return; closed = true; op.classList.add("out"); setTimeout(() => op.remove(), 700); }
-  requestAnimationFrame(() => requestAnimationFrame(() => op.classList.add("go")));
+  setTimeout(() => op.classList.add("go"), 50);
   setTimeout(close, 3100);
   op.addEventListener("click", close);
 })();
