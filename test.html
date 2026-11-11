@@ -6,6 +6,7 @@
 <title>日本100名城マップ</title>
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://unpkg.com/pmtiles@3.2.1/dist/pmtiles.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Yuji+Syuku&display=swap" rel="stylesheet">
 <style>
@@ -177,6 +178,8 @@ function saveVisited(){ try { localStorage.setItem(KEY, JSON.stringify([...visit
 function updateCount(){ document.getElementById("count").textContent = `訪問 ${visited.size} / 100`; }
 
 // ---- 地図（国土地理院 最適化ベクトルタイル） ----
+const pmProtocol = new pmtiles.Protocol();
+maplibregl.addProtocol("pmtiles", pmProtocol.tile);
 const JAPAN = [[120.0, 20.0], [155.0, 46.8]];
 const map = new maplibregl.Map({
   container: "map",
