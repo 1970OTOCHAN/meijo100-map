@@ -36,6 +36,7 @@
   .maplibregl-popup-content { padding:10px; }
   .castle { cursor:pointer; }
   #swap { background:#1f7a3d; color:#fff; text-decoration:none; padding:4px 12px; border-radius:14px; font-size:14px; font-weight:700; border:1px solid rgba(255,255,255,.5); }
+  .zoku { color:#6cb4ff; }
   #ver { font-size:12px; color:#d9c9b0; margin-left:auto; }
   #opening { position:fixed; inset:0; z-index:5000; background:#1f2529; display:flex; flex-direction:column;
              align-items:center; justify-content:center; cursor:pointer; transition:opacity .6s; text-align:center; padding:0 16px; }
@@ -52,18 +53,18 @@
 <body>
 <div id="opening">
   <div class="a d1"><svg width="132" height="132" viewBox="0 0 132 132" aria-hidden="true"><rect x="2" y="2" width="128" height="128" rx="26" fill="#1f5fa8"/><text x="66" y="24" text-anchor="middle" fill="#fff" font-size="9.5" font-family="Georgia,serif" letter-spacing="0.5">ZOKU NIHON 100 MEIJO</text><path d="M30 112 L36 88 L96 88 L102 112 Z" fill="#e8e4d8"/><path d="M36 112 v-4 M48 112 v-6 M60 112 v-5 M72 112 v-6 M84 112 v-5 M96 112 v-4" stroke="#b9b2a0" stroke-width="1.5"/><rect x="44" y="76" width="44" height="12" fill="#fff"/><path d="M36 78 L66 68 L96 78 Z" fill="#fff"/><rect x="50" y="58" width="32" height="12" fill="#fff"/><path d="M42 60 L66 50 L90 60 Z" fill="#fff"/><rect x="56" y="42" width="20" height="10" fill="#fff"/><path d="M48 44 L66 34 L84 44 Z" fill="#fff"/><rect x="58" y="80" width="5" height="6" fill="#1f5fa8"/><rect x="69" y="80" width="5" height="6" fill="#1f5fa8"/><rect x="63" y="61" width="6" height="6" fill="#1f5fa8"/><path d="M104 50 c-8 0 -13 6 -13 12 c0 9 13 22 13 22 s13 -13 13 -22 c0 -6 -5 -12 -13 -12 z" fill="#d93a2b" stroke="#fff" stroke-width="2"/><circle cx="104" cy="62" r="4.5" fill="#fff"/></svg></div>
-  <div class="a d2 t1">続日本100名城マップ</div>
+  <div class="a d2 t1"><span class="zoku">続</span>日本100名城マップ</div>
   <div class="a d3 t2">国土地理院の地図で、続100名城をめぐる</div>
   <div class="a d4 t3">© 2026 1970 OTOCHAN. All rights reserved.</div>
   <div class="a d4 t4">続日本100名城®は公益財団法人日本城郭協会の登録商標です。<br>本アプリは同協会の公式アプリではありません。</div>
 </div>
 <div id="bar">
-  <h1>🏯 続日本100名城マップ</h1>
+  <h1>🏯 <span class="zoku">続</span>日本100名城マップ</h1>
   <span id="count">訪問 0 / 100</span>
   <select id="jump"><option value="">城を選んで移動…</option></select>
   <label><input type="checkbox" id="onlyNot"> 未訪問だけ表示</label>
   <a id="swap" href="./?skip=1">◀ 100名城へ</a>
-  <span id="ver">Ver 1.0</span>
+  <span id="ver">Ver 1.1</span>
 </div>
 <div id="map"></div>
 
@@ -93,7 +94,7 @@ const CASTLES = [
 [121,"本佐倉城","千葉県",35.7275,140.259,"本佐倉城"],
 [122,"大多喜城","千葉県",35.2859,140.239,"大多喜城"],
 [123,"滝山城","東京都",35.702,139.3283,"滝山城"],
-[124,"品川台場","東京都",35.6355,139.7715,"台場"],
+[124,"品川台場","東京都",35.6335,139.7719,"台場公園"],
 [125,"小机城","神奈川県",35.5124,139.5937,"小机城"],
 [126,"石垣山城","神奈川県",35.2353,139.127,"石垣山城"],
 [127,"新府城","山梨県",35.7358,138.4253,"新府城"],
