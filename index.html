@@ -6,6 +6,8 @@
 <title>日本100名城マップ</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Yuji+Syuku&display=swap" rel="stylesheet">
 <style>
   html, body { margin:0; height:100%; font-family: "Hiragino Sans","Yu Gothic UI","Meiryo",sans-serif; }
   #bar { position:absolute; top:0; left:0; right:0; z-index:1000; display:flex; align-items:center; gap:10px;
@@ -31,14 +33,33 @@
                 cursor:pointer; background:#3b2a1a; color:#fff; font-weight:700; }
   .pop button.on { background:#c0392b; }
   .leaflet-popup-content { margin:10px; }
+  #ver { font-size:12px; color:#d9c9b0; margin-left:auto; }
+  #opening { position:fixed; inset:0; z-index:5000; background:#1f2529; display:flex; flex-direction:column;
+             align-items:center; justify-content:center; cursor:pointer; transition:opacity .6s; text-align:center; padding:0 16px; }
+  #opening.out { opacity:0; pointer-events:none; }
+  #opening .a { opacity:0; transform:translateY(8px); transition:opacity .7s, transform .7s; }
+  #opening.go .a { opacity:1; transform:none; }
+  #opening.go .d2 { transition-delay:.5s; } #opening.go .d3 { transition-delay:.8s; } #opening.go .d4 { transition-delay:1.1s; }
+  #opening .t1 { font-family:"Yuji Syuku",serif; color:#fff; font-size:32px; margin-top:18px; }
+  #opening .t2 { font-family:"Yuji Syuku",serif; color:#f2cf6b; font-size:17px; margin-top:8px; }
+  #opening .t3 { color:#b9c0c4; font-size:11px; margin-top:24px; }
+  #opening .t4 { color:#8f989d; font-size:11px; margin-top:10px; line-height:1.6; }
 </style>
 </head>
 <body>
+<div id="opening">
+  <div class="a d1"><svg width="132" height="132" viewBox="0 0 132 132" aria-hidden="true"><rect x="2" y="2" width="128" height="128" rx="26" fill="#1f7a3d"/><text x="66" y="24" text-anchor="middle" fill="#fff" font-size="11" font-family="Georgia,serif" letter-spacing="1">NIHON 100 MEIJO</text><path d="M30 112 L36 88 L96 88 L102 112 Z" fill="#e8e4d8"/><path d="M36 112 v-4 M48 112 v-6 M60 112 v-5 M72 112 v-6 M84 112 v-5 M96 112 v-4" stroke="#b9b2a0" stroke-width="1.5"/><rect x="44" y="76" width="44" height="12" fill="#fff"/><path d="M36 78 L66 68 L96 78 Z" fill="#fff"/><rect x="50" y="58" width="32" height="12" fill="#fff"/><path d="M42 60 L66 50 L90 60 Z" fill="#fff"/><rect x="56" y="42" width="20" height="10" fill="#fff"/><path d="M48 44 L66 34 L84 44 Z" fill="#fff"/><rect x="58" y="80" width="5" height="6" fill="#1f7a3d"/><rect x="69" y="80" width="5" height="6" fill="#1f7a3d"/><rect x="63" y="61" width="6" height="6" fill="#1f7a3d"/><path d="M104 50 c-8 0 -13 6 -13 12 c0 9 13 22 13 22 s13 -13 13 -22 c0 -6 -5 -12 -13 -12 z" fill="#d93a2b" stroke="#fff" stroke-width="2"/><circle cx="104" cy="62" r="4.5" fill="#fff"/></svg></div>
+  <div class="a d2 t1">日本100名城マップ</div>
+  <div class="a d3 t2">国土地理院の地図で、100名城をめぐる</div>
+  <div class="a d4 t3">© 2026 1970 OTOCHAN. All rights reserved.</div>
+  <div class="a d4 t4">日本100名城®は公益財団法人日本城郭協会の登録商標です。<br>本アプリは同協会の公式アプリではありません。</div>
+</div>
 <div id="bar">
   <h1>🏯 日本100名城マップ</h1>
   <span id="count">訪問 0 / 100</span>
   <select id="jump"><option value="">城を選んで移動…</option></select>
   <label><input type="checkbox" id="onlyNot"> 未訪問だけ表示</label>
+  <span id="ver">Ver 1.1</span>
 </div>
 <div id="map"></div>
 
@@ -161,7 +182,17 @@ const layers = {
   "淡色地図": L.tileLayer("https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png", {attribution:gsiAttr, maxZoom:18}),
   "写真":     L.tileLayer("https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg", {attribution:gsiAttr, maxZoom:18})
 };
-const map = L.map("map", { layers:[layers["標準地図"]] }).setView([36.5, 136.0], 5);
+// 日本の周りだけ動かせるようにする
+const JAPAN = L.latLngBounds([[23.5, 122.5], [46.0, 149.0]]);
+const map = L.map("map", { layers:[layers["標準地図"]], maxBounds: JAPAN.pad(0.05), maxBoundsViscosity: 1.0 });
+function fitJapan(){
+  map.setMinZoom(0);
+  const z = Math.max(4, map.getBoundsZoom(JAPAN, false));
+  map.setMinZoom(z);
+  return z;
+}
+map.fitBounds(JAPAN); fitJapan();
+map.on("resize", fitJapan);
 L.control.layers(layers, null, {collapsed:false}).addTo(map);
 
 function makeIcon(no){
@@ -263,6 +294,16 @@ function applyFilter(){
 }
 onlyNot.onchange = applyFilter;
 updateCount();
+
+// ---- オープニング ----
+(function(){
+  const op = document.getElementById("opening");
+  let closed = false;
+  function close(){ if (closed) return; closed = true; op.classList.add("out"); setTimeout(() => op.remove(), 700); }
+  requestAnimationFrame(() => requestAnimationFrame(() => op.classList.add("go")));
+  setTimeout(close, 3100);
+  op.addEventListener("click", close);
+})();
 </script>
 </body>
 </html>
