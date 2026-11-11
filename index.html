@@ -63,7 +63,7 @@
   <select id="jump"><option value="">城を選んで移動…</option></select>
   <label><input type="checkbox" id="onlyNot"> 未訪問だけ表示</label>
   <a id="swap" href="zoku.html?skip=1">続100名城へ ▶</a>
-  <span id="ver">Ver 2.1</span>
+  <span id="ver">Ver 2.2</span>
 </div>
 <div id="map"></div>
 
@@ -183,10 +183,12 @@ function updateCount(){ document.getElementById("count").textContent = `訪問 $
 const pmProtocol = new pmtiles.Protocol();
 maplibregl.addProtocol("pmtiles", pmProtocol.tile);
 const JAPAN = [[120.0, 20.0], [155.0, 46.8]];
+// 最初は近畿地方（大阪・京都・兵庫・奈良・滋賀・和歌山・三重）のアップで表示する
+const KINKI = [[134.25, 33.4], [136.95, 35.8]];
 const map = new maplibregl.Map({
   container: "map",
   style: "https://gsi-cyberjapan.github.io/optimal_bvmap/style/std.json",
-  bounds: JAPAN, maxBounds: JAPAN, maxZoom: 17.5,
+  bounds: KINKI, fitBoundsOptions: { padding: 10 }, maxBounds: JAPAN, maxZoom: 17.5,
   dragRotate: false, pitchWithRotate: false, attributionControl: false
 });
 map.touchZoomRotate.disableRotation();
