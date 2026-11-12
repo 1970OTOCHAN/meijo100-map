@@ -79,6 +79,7 @@
   <div class="a d2 t1"><span class="zoku">続</span>日本100名城マップ</div>
   <div class="a d3 t2">国土地理院の地図で、続100名城をめぐる</div>
   <div class="a d4 t3">© 2026 1970 OTOCHAN. All rights reserved.</div>
+  <div class="a d4 t4">本アプリの無断での改変・再配布を禁止します。スクリーンショットやリンクでの紹介は自由です。</div>
   <div class="a d4 t4">続日本100名城®は公益財団法人日本城郭協会の登録商標です。<br>本アプリは同協会の公式アプリではありません。</div>
 </div>
 <div id="bar">
@@ -88,7 +89,7 @@
   <label><input type="checkbox" id="onlyNot"> 未訪問だけ表示</label>
   <a id="swap" href="./?skip=1">◀ 100名城へ</a>
   <button id="share">記録の受け渡し</button>
-  <span id="ver">Ver 3.2</span>
+  <span id="ver">Ver 3.3</span>
   <div id="notice"><span>⚠ 行った城の印は、この機器のこのブラウザだけに保存されます。<br>スマホとパソコン、ブラウザが違うと別々の記録になります。</span><button id="noticeClose" aria-label="閉じる">✕</button></div>
 </div>
 <div id="map"></div>
@@ -236,7 +237,8 @@ const map = new maplibregl.Map({
 map.touchZoomRotate.disableRotation();
 map.addControl(new maplibregl.NavigationControl({ showCompass:false }), "top-left");
 map.addControl(new maplibregl.AttributionControl({ compact:false,
-  customAttribution: '出典：<a href="https://github.com/gsi-cyberjapan/optimal_bvmap" target="_blank">国土地理院最適化ベクトルタイル</a>' }));
+  customAttribution: ['出典：<a href="https://github.com/gsi-cyberjapan/optimal_bvmap" target="_blank">国土地理院最適化ベクトルタイル</a>',
+    '© 2026 1970 OTOCHAN（無断での改変・再配布禁止／スクショ・リンクでの紹介は自由）'] }));
 // 境界線と等高線を消して、シンプルにする
 map.on("load", () => {
   map.getStyle().layers.forEach(l => {
