@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script src="https://unpkg.com/pmtiles@3.2.1/dist/pmtiles.js"></script>
+<script src="https://unpkg.com/qrcode-generator@1.4.4/qrcode.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Yuji+Syuku&display=swap" rel="stylesheet">
 <style>
@@ -40,6 +41,21 @@
             border-radius:6px; padding:6px 10px; font-size:13px; font-weight:700; line-height:1.5; }
   #notice span { flex:1; }
   #notice button { background:none; border:none; color:#8a5a00; font-size:18px; font-weight:700; cursor:pointer; padding:0 4px; }
+  #share { background:#e0a800; color:#3b2a1a; border:none; padding:4px 12px; border-radius:14px; font-size:14px; font-weight:700; cursor:pointer; }
+  #sharePanel { display:none; position:fixed; inset:0; z-index:4000; background:rgba(0,0,0,.45); align-items:center; justify-content:center; padding:10px; }
+  #sharePanel.show { display:flex; }
+  #sharePanel .box { background:#fff; border-radius:10px; width:100%; max-width:420px; max-height:94vh; overflow:auto; padding:14px 16px; position:relative; }
+  #sharePanel h2 { margin:0 0 10px; font-size:18px; text-align:center; }
+  #sharePanel h3 { margin:12px 0 4px; font-size:15px; color:#3b2a1a; }
+  #sharePanel .note { font-size:12.5px; color:#555; line-height:1.5; margin:4px 0; }
+  #sharePanel .row { display:flex; gap:6px; }
+  #sharePanel input { flex:1; min-width:0; font-size:14px; padding:7px; border:1px solid #999; border-radius:4px; font-family:monospace; }
+  #sharePanel button.b { border:none; border-radius:6px; padding:8px 12px; font-size:14px; font-weight:700; color:#fff; background:#3b2a1a; cursor:pointer; white-space:nowrap; }
+  #sharePanel button.red { background:#c0392b; width:100%; margin-top:6px; padding:10px; }
+  #shareQr { text-align:center; margin:8px 0; } #shareQr svg { width:180px; height:180px; }
+  #shareClose { position:absolute; right:10px; top:6px; background:none; border:none; font-size:22px; color:#888; cursor:pointer; }
+  #shareMsg { font-size:13px; font-weight:700; margin-top:6px; line-height:1.5; }
+  #sharePanel .tip { background:#fff4d6; border:1px solid #e0a800; color:#8a5a00; font-weight:700; font-size:12.5px; border-radius:4px; padding:6px 8px; margin-top:10px; line-height:1.5; }
   #ver { font-size:12px; color:#d9c9b0; margin-left:auto; }
   #opening { position:fixed; inset:0; z-index:5000; background:#1f2529; display:flex; flex-direction:column;
              align-items:center; justify-content:center; cursor:pointer; transition:opacity .6s; text-align:center; padding:0 16px; }
@@ -67,10 +83,27 @@
   <select id="jump"><option value="">城を選んで移動…</option></select>
   <label><input type="checkbox" id="onlyNot"> 未訪問だけ表示</label>
   <a id="swap" href="zoku.html?skip=1">続100名城へ ▶</a>
-  <span id="ver">Ver 2.3</span>
+  <button id="share">記録の受け渡し</button>
+  <span id="ver">Ver 3.0</span>
   <div id="notice"><span>⚠ 行った城の印は、この機器のこのブラウザだけに保存されます。<br>スマホとパソコン、ブラウザが違うと別々の記録になります。</span><button id="noticeClose" aria-label="閉じる">✕</button></div>
 </div>
 <div id="map"></div>
+<div id="sharePanel"><div class="box">
+  <button id="shareClose" aria-label="閉じる">✕</button>
+  <h2>記録の受け渡し</h2>
+  <h3>① 書き出す（この機器の記録を渡す）</h3>
+  <div class="note">100名城・続100名城の両方の印が入っています。<br><span id="shareNow"></span></div>
+  <div class="row"><input id="shareCode" readonly><button class="b" id="shareCopy">コピー</button></div>
+  <div id="shareQr"></div>
+  <div class="note">もう片方の機器のカメラでこのQRコードを読み取ると、アプリが開いて読み込みの画面になります。</div>
+  <h3>② 読み込む（もらった記録を入れる）</h3>
+  <input id="shareInput" placeholder="ここに書き出した文字を貼り付け" style="width:100%;box-sizing:border-box">
+  <button class="b red" id="shareLoad">読み込む</button>
+  <div id="shareMsg"></div>
+  <div class="note">今の印は消さずに、もらった印を足します。（例：スマホに5城、パソコンに3城 → 両方の8城になる）</div>
+  <div class="tip">そろえたいときは、両方の機器で「書き出し→読み込み」を1回ずつすると、どちらも同じ印になります。</div>
+</div></div>
+
 
 <script>
 // [番号, 城名, 都道府県, 緯度, 経度, Wikipedia記事名]
@@ -313,6 +346,73 @@ updateCount();
   let closed = false; try { closed = localStorage.getItem(NK) === "1"; } catch(e) {}
   if (closed) { box.remove(); return; }
   document.getElementById("noticeClose").onclick = () => { box.remove(); try { localStorage.setItem(NK, "1"); } catch(e) {} };
+})();
+
+// ---- 記録の受け渡し（書き出し・読み込み。100名城と続100名城の両方をまとめて扱う） ----
+(function(){
+  const KEYS = { m:"meijo100_visited", z:"zoku100_visited" };
+  function load(k){ try { return JSON.parse(localStorage.getItem(k) || "[]").map(Number); } catch(e) { return []; } }
+  function save(k, arr){ try { localStorage.setItem(k, JSON.stringify(arr)); } catch(e) {} }
+  // 1〜200番を200個のしるし（25バイト）にして、短い文字にする
+  function makeCode(){
+    const b = new Uint8Array(25);
+    load(KEYS.m).concat(load(KEYS.z)).forEach(n => { if (n >= 1 && n <= 200) b[(n-1) >> 3] |= 1 << ((n-1) & 7); });
+    let s = ""; b.forEach(x => s += String.fromCharCode(x));
+    return "M" + btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+  }
+  function readCode(code){
+    code = (code || "").trim().replace(/^.*[?&]import=/, "").replace(/[&#].*$/, "");
+    if (!/^M[A-Za-z0-9_-]{30,40}$/.test(code)) return null;
+    let s; try { s = atob(code.slice(1).replace(/-/g,"+").replace(/_/g,"/")); } catch(e) { return null; }
+    if (s.length !== 25) return null;
+    const nums = [];
+    for (let i = 0; i < 200; i++) if (s.charCodeAt(i >> 3) & (1 << (i & 7))) nums.push(i + 1);
+    return nums;
+  }
+  const panel = document.getElementById("sharePanel"), msg = document.getElementById("shareMsg");
+  const codeBox = document.getElementById("shareCode"), input = document.getElementById("shareInput");
+  function open(){
+    const code = makeCode();
+    codeBox.value = code;
+    document.getElementById("shareNow").textContent =
+      `今この機器の印：100名城 ${load(KEYS.m).length}城・続100名城 ${load(KEYS.z).length}城`;
+    const qrBox = document.getElementById("shareQr");
+    try {
+      const q = qrcode(0, "M");
+      q.addData(location.origin + location.pathname + "?import=" + code);
+      q.make();
+      qrBox.innerHTML = q.createSvgTag(4, 8);
+    } catch(e) { qrBox.textContent = "QRコードを作れませんでした（インターネット接続を確認してください）"; }
+    panel.classList.add("show");
+  }
+  document.getElementById("share").onclick = () => { msg.textContent = ""; input.value = ""; open(); };
+  document.getElementById("shareClose").onclick = () => panel.classList.remove("show");
+  document.getElementById("shareCopy").onclick = async () => {
+    try { await navigator.clipboard.writeText(codeBox.value); }
+    catch(e) { codeBox.select(); try { document.execCommand("copy"); } catch(e2) {} }
+    document.getElementById("shareCopy").textContent = "コピーしました";
+    setTimeout(() => document.getElementById("shareCopy").textContent = "コピー", 2000);
+  };
+  document.getElementById("shareLoad").onclick = () => {
+    const nums = readCode(input.value);
+    if (!nums) { msg.style.color = "#c0392b"; msg.textContent = "文字が正しくありません。書き出した文字をそのまま貼り付けてください。"; return; }
+    const m = new Set(load(KEYS.m)), z = new Set(load(KEYS.z));
+    const before = m.size + z.size;
+    nums.forEach(n => (n <= 100 ? m : z).add(n));
+    save(KEYS.m, [...m]); save(KEYS.z, [...z]);
+    const added = m.size + z.size - before;
+    msg.style.color = "#1f7a3d";
+    msg.textContent = added ? `${added}城の印を足しました。地図を読み込み直します…` : "新しく足す印はありませんでした（すでに同じ印が付いています）。";
+    if (added) setTimeout(() => location.replace(location.pathname + "?skip=1"), 1800);
+  };
+  // QRコードから開いたとき：受け取った文字を入れて、画面を開く
+  const imp = new URLSearchParams(location.search).get("import");
+  if (imp) {
+    history.replaceState(null, "", location.pathname + "?skip=1");
+    open(); input.value = imp;
+    msg.style.color = "#1f7a3d";
+    msg.textContent = "QRコードから記録を受け取りました。下の「読み込む」を押すと、印が足されます。";
+  }
 })();
 
 // ---- オープニング ----
