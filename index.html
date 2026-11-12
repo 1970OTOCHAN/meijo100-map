@@ -68,8 +68,8 @@
   #opening.go .d2 { transition-delay:.5s; } #opening.go .d3 { transition-delay:.8s; } #opening.go .d4 { transition-delay:1.1s; }
   #opening .t1 { font-family:"Yuji Syuku",serif; color:#fff; font-size:32px; margin-top:18px; }
   #opening .t2 { font-family:"Yuji Syuku",serif; color:#f2cf6b; font-size:17px; margin-top:8px; }
-  #opening .t3 { color:#b9c0c4; font-size:11px; margin-top:24px; }
-  #opening .t4 { color:#8f989d; font-size:11px; margin-top:10px; line-height:1.6; }
+  #opening .t3 { color:#b9c0c4; font-size:13px; margin-top:24px; }
+  #opening .t4 { color:#8f989d; font-size:13px; margin-top:10px; line-height:1.6; }
 </style>
 </head>
 <body>
@@ -88,7 +88,7 @@
   <label><input type="checkbox" id="onlyNot"> 未訪問だけ表示</label>
   <a id="swap" href="zoku.html?skip=1">続100名城へ ▶</a>
   <button id="share">記録の受け渡し</button>
-  <span id="ver">Ver 3.4</span>
+  <span id="ver">Ver 3.5</span>
   <div id="notice"><span>⚠ 行った城の印は、この機器のこのブラウザだけに保存されます。<br>スマホとパソコン、ブラウザが違うと別々の記録になります。</span><button id="noticeClose" aria-label="閉じる">✕</button></div>
 </div>
 <div id="map"></div>
@@ -440,7 +440,7 @@ updateCount();
   let closed = false;
   function close(){ if (closed) return; closed = true; op.classList.add("out"); setTimeout(() => op.remove(), 700); }
   setTimeout(() => op.classList.add("go"), 50);
-  setTimeout(close, 3100);
+  setTimeout(close, 4100);
   op.addEventListener("click", close);
 })();
 </script>
