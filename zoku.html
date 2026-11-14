@@ -95,7 +95,7 @@
   <label><input type="checkbox" id="onlyNot"> 未訪問だけ表示</label>
   <a id="swap" href="./?skip=1">◀ 100名城へ</a>
   <button id="share">記録の受け渡し</button>
-  <span id="ver">Ver 4.1</span>
+  <span id="ver">Ver 4.2</span>
   <div id="notice"><span>⚠ 行った城の印は、この機器のこのブラウザだけに保存されます。<br>スマホとパソコン、ブラウザが違うと別々の記録になります。</span><button id="noticeClose" aria-label="閉じる">✕</button></div>
 </div>
 <div id="map"></div>
@@ -243,6 +243,15 @@ const map = new maplibregl.Map({
 });
 map.touchZoomRotate.disableRotation();
 map.addControl(new maplibregl.NavigationControl({ showCompass:false }), "top-left");
+// 帯の高さに合わせて地図の位置を決める（スマホで帯が3段になっても「＋」「－」が帯の下に隠れないように。Ver 4.2）
+(function(){
+  const barEl = document.getElementById("bar"), mapEl = document.getElementById("map");
+  function layout(){ mapEl.style.top = barEl.offsetHeight + "px"; map.resize(); }
+  layout();
+  window.addEventListener("resize", layout);
+  if (window.ResizeObserver) new ResizeObserver(layout).observe(barEl);
+  if (document.fonts) document.fonts.ready.then(layout);
+})();
 map.addControl(new maplibregl.AttributionControl({ compact:false,
   customAttribution: ['出典：<a href="https://github.com/gsi-cyberjapan/optimal_bvmap" target="_blank">国土地理院最適化ベクトルタイル</a>（一部を加工して表示）',
     '© 2026 1970 OTOCHAN（アプリの無断での再配布・改変・販売はご遠慮ください／スクショ・リンクでの紹介は自由）'] }));
